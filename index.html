@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+
+    <p id="Left Stick">left stick: 0</p>
+    <p id="Right Stick">right stick: 0</p>
+    <p id="Buttons Pressed">buttons: </p>
+
+    <canvas id="CanvasUI" width="450" height="400">
+        Your browser does not support the canvas element.
+    </canvas>
+
+    <table style="width:400px">
+        <tr style="text-align:left">
+            <th>Speed</th>
+            <th>Acceleration</th>
+        </tr>
+        <tr>
+            <td>
+                <canvas id="CanvasUISpeed" width="200" height="400">
+                Your browser does not support the canvas element.
+                </canvas>
+            </td>
+            <td>
+                <canvas id="CanvasUIAccel" width="200" height="400">
+                    Your browser does not support the canvas element.
+                </canvas>
+            </td>
+
+        </tr>
+    </table>
+
+    <script src="js/Controller.min.js"></script>
+    <script src="js/Controller.layouts.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
