@@ -153,7 +153,7 @@ function updateSpeedAndAccelerationUI(canvas, button=null, currentspeed=0){
             currentspeed -= button.value * 0.05;
             acceleration = -button.value;
         }
-        console.log(acceleration);
+        //console.log(acceleration);
 
         currentspeed = Math.max(currentspeed,0);
         currentspeed = Math.min(currentspeed,1);
