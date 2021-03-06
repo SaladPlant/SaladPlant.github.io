@@ -151,7 +151,7 @@ function updateSpeedAndAccelerationUI(canvas, button=null, currentspeed=0){
             acceleration = button.value;
         }else if (button.name == "LEFT_SHOULDER_BOTTOM"){
             currentspeed -= button.value * 0.05;
-            acceleration = button.value;
+            acceleration = -button.value;
         }
         console.log(acceleration);
 
