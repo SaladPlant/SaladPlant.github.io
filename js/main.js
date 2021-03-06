@@ -1,64 +1,32 @@
-Controller.search();
-
-// Input events
-window.addEventListener('gc.button.press', updateButton, false);
-window.addEventListener('gc.button.hold', updateButton, false);
-window.addEventListener('gc.button.release', updateButton, false);
-window.addEventListener('gc.analog.change', updateAnalog, false);
-
-window.addEventListener('gc.controller.found', function(event) {
-    var controller = event.detail.controller;
-    const data = {"Status":"Controller Found"};
-    const options = {
-        method: "POST",
-        headers:{
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify(data)
-    }
-    fetch("/api", options).then(response=>{
-        console.log(response);
-    });
-    console.log("Controller found at index " + controller.index + ".");
-    console.log("'" + controller.name + "' is ready!");
-}, false);
-
-var xlen = 400;
-var ylen = 400;
-
-
-
-function setup(){
-    var centre = {x:xlen/2,y:ylen/2};
-    var canvas = document.getElementById("CanvasUI");
-    var tiltcanvas = canvas.getContext("2d");
-    tiltcanvas.fillStyle = "#000000";
-    tiltcanvas.strokeStyle = "#FFFFFF";
-    tiltcanvas.fillRect(0,0,xlen+50,ylen);
-    tiltcanvas.lineWidth = 1;
-    tiltcanvas.beginPath();
-    tiltcanvas.arc(centre.x, centre.y, 200, 0, 2 * Math.PI);
-    tiltcanvas.moveTo(centre.x-200,centre.y);
-    tiltcanvas.lineTo(centre.x+200, centre.y);
-    tiltcanvas.stroke();
-
-    canvas = document.getElementById("CanvasUISpeed");
-    var speedcanvas = canvas.getContext("2d");
-    speedcanvas.fillStyle = "#000000";
-    speedcanvas.fillRect(0,0,100,400);
-
-    canvas = document.getElementById("CanvasUIAccel");
-    var accelcanvas = canvas.getContext("2d");
-    accelcanvas.fillStyle = "#000000";
-    accelcanvas.fillRect(0,0,100,400);
-
-    console.log("setup complete");
-}
-setup()
-
-//Buttons
+var tilt_UI = document.getElementById("CanvasUITilt");
+var speed_UI = document.getElementById("CanvasUISpeed");
+var acceleration_UI = document.getElementById("CanvasUIAccel");
+var vel = 0;
 var Buttons_Pressed = new Array(" ")
-var speed = 0;
+
+_main();
+
+function _main(){
+    //Get Controller
+    Controller.search();
+
+    // Input events
+    window.addEventListener('gc.button.press', updateButton, false);
+    window.addEventListener('gc.button.hold', updateButton, false);
+    window.addEventListener('gc.button.release', updateButton, false);
+    window.addEventListener('gc.analog.change', updateAnalog, false);
+
+    //------------------------------------------------------------------Controller Found Status------------------------------------------------------------------
+    window.addEventListener('gc.controller.found', function(event) {
+        var controller = event.detail.controller;
+        console.log("Controller found at index " + controller.index + ".");
+        console.log("'" + controller.name + "' is ready!");
+        setup()
+    }, false);
+    //-----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+}
+
 
 function updateButton(event){
     var button = event.detail;
@@ -82,98 +50,169 @@ function updateButton(event){
         document.getElementById("Buttons Pressed").innerHTML = "buttons: " + Buttons_Pressed.toString();
     }
 
-
-    if (button.name == "RIGHT_SHOULDER_BOTTOM"){
-        speed = speed + button.value * 0.05;
-    }else if (button.name == "LEFT_SHOULDER_BOTTOM"){
-        speed = speed - button.value * 0.05;
+    if((button.name == "RIGHT_SHOULDER_BOTTOM") || (button.name =="LEFT_SHOULDER_BOTTOM")){
+        vel = updateSpeedAndAccelerationUI({speed:speed_UI,acceleration:acceleration_UI},button,vel);
     }
-
-    var accel = 0;
-    if (button.name == "RIGHT_SHOULDER_BOTTOM"){
-        accel = button.value;
-    }else if (button.name == "LEFT_SHOULDER_BOTTOM"){
-        accel = -button.value;
-    }
-
-    speed = Math.max(speed,0);
-    speed = Math.min(speed,1);
-    var c = document.getElementById("CanvasUISpeed");
-    var ctx = c.getContext("2d");
-    console.log(button.value);
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0,0,100,ylen);
-    ctx.strokeStyle = "#FF0000";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(0, 400 - 400 * speed);
-    ctx.lineTo(100, 400 - 400 * speed);
-    ctx.stroke();
-
-
-    var c = document.getElementById("CanvasUIAccel");
-    var ctx = c.getContext("2d");
-    console.log(button.value);
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0,0,100,ylen);
-    ctx.strokeStyle = "#FF0000";
-    ctx.lineWidth = 10;
-    ctx.beginPath();
-    ctx.moveTo(0, 400 - (200 * accel)-200);
-    ctx.lineTo(100, 400 - (200 * accel)-200);
-    ctx.stroke();
-
 
 }
 
-
-
-// Analog Sticks
  function updateAnalog(event) {
     var stick = event.detail;
-    var centre = {x:xlen/2,y:ylen/2};
-    var c = document.getElementById("CanvasUI");
-    var ctx = c.getContext("2d");
+    updateTiltUI(tilt_UI,stick);
+}
 
-    if (stick.name == "LEFT_ANALOG_STICK") {
-        document.getElementById("Left Stick").innerHTML = "left stick: " + stick.position.x + "  "+ -stick.position.y;
+function setup(){
+    // var tilt_UI = document.getElementById("CanvasUITilt");
+    // var speed_UI = document.getElementById("CanvasUISpeed");
+    // var acceleration_UI = document.getElementById("CanvasUIAccel");
 
-        var line_update = calculateLineStart({x:425,y:375},stick.position.x,20,30);
+    //UI
+    updateTiltUI(tilt_UI);
+    updateSpeedAndAccelerationUI({speed:speed_UI,acceleration:acceleration_UI});
+
+    console.log("Setup Complete");
+}
+
+function refreshCanvas(canvas,startx=0,starty=0,xbound=0,ybound=0){
+    if (canvas.getContext){
+        var ctx = canvas.getContext("2d");
         ctx.fillStyle = "#000000";
-        ctx.fillRect(400,350,50,50);
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 1;
+        ctx.fillRect(0+startx,0+starty,canvas.width-xbound,canvas.height-ybound);
+    }
+}
+
+function updateTiltUI(canvas, stick=null){
+    
+    var ctx = canvas.getContext("2d");
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1;
+
+    //roll UI variables
+    var rollUIwidth = canvas.width - (canvas.width-canvas.height);
+    var rollUIheight = canvas.height;
+    var rollcentre = {x:rollUIwidth/2, y:rollUIheight/2};
+    var rollUIradius = 200;
+
+    //pitch UI variables
+    var pitchUIwidth = canvas.width-canvas.height;
+    var pitchUIheight = canvas.width-canvas.height;
+    var pitchcentre = {y: (rollUIwidth + pitchUIwidth/2), x: (rollUIheight - pitchUIheight/2)}; //flipped to make line vertical
+    var pitchUIradius = 20;
+
+    if (stick){
+        if(stick.name == "RIGHT_ANALOG_STICK"){
+            document.getElementById("Right Stick").innerHTML = "right stick: " + stick.position.x + "  "+ -stick.position.y;
+            refreshCanvas(canvas,0,0,pitchUIwidth,0);
+
+            var roll_line_points = calculateLinePoints(rollcentre, stick.position.x, rollUIradius, 90);
+
+            ctx.beginPath();
+            ctx.arc(rollcentre.x, rollcentre.y, rollUIradius, 0, 2 * Math.PI);
+            ctx.moveTo(roll_line_points.start.x, roll_line_points.start.y);
+            ctx.lineTo(roll_line_points.end.x, roll_line_points.end.y);
+            ctx.stroke();
+
+        }else if(stick.name == "LEFT_ANALOG_STICK"){
+            document.getElementById("Left Stick").innerHTML = "left stick: " + stick.position.x + "  "+ -stick.position.y;
+            refreshCanvas(canvas,rollUIwidth,rollUIheight-pitchUIheight,canvas.height,canvas.height-(canvas.width-canvas.height));
+            var pitch_line_points = calculateLinePoints(pitchcentre, stick.position.x, pitchUIradius, 30);
+
+            ctx.beginPath();
+            ctx.arc(pitchcentre.y, pitchcentre.x, pitchUIradius, 0, 2 * Math.PI);
+            ctx.moveTo(pitch_line_points.start.y, pitch_line_points.start.x);
+            ctx.lineTo(pitch_line_points.end.y, pitch_line_points.end.x);
+            ctx.stroke();
+        }
+
+    }else{
+        refreshCanvas(canvas,0,0,pitchUIwidth,0);
+        refreshCanvas(canvas,rollUIwidth,rollUIheight-pitchUIheight,canvas.height,canvas.height-(canvas.width-canvas.height));
+
         ctx.beginPath();
-        ctx.moveTo(line_update.start.y+50, line_update.start.x-50);
-        ctx.lineTo(line_update.end.y+50, line_update.end.x-50);
+        ctx.moveTo(rollcentre.x+rollUIradius, rollcentre.y);
+        ctx.arc(rollcentre.x, rollcentre.y, rollUIradius, 0, 2 * Math.PI);
+        ctx.moveTo(pitchcentre.y+pitchUIradius, pitchcentre.x);
+        ctx.arc(pitchcentre.y, pitchcentre.x, pitchUIradius, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+}
+
+function updateSpeedAndAccelerationUI(canvas, button=null, currentspeed=0){
+    var acceleration = 0;
+
+    var canvaswidth = canvas.speed.width;
+    var canvasheight = canvas.speed.height;
+    var canvascentre = canvas.acceleration.height/2;
+    
+
+    if (button){
+        if (button.name == "RIGHT_SHOULDER_BOTTOM"){
+            currentspeed += button.value * 0.05;
+            acceleration = button.value;
+        }else if (button.name == "LEFT_SHOULDER_BOTTOM"){
+            currentspeed -= button.value * 0.05;
+            acceleration = button.value;
+        }
+        console.log(acceleration);
+
+        currentspeed = Math.max(currentspeed,0);
+        currentspeed = Math.min(currentspeed,1);
+
+        var ctx = canvas.speed.getContext("2d");
+        //console.log(button.value);
+        refreshCanvas(canvas.speed);
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, canvasheight - canvasheight * currentspeed);
+        ctx.lineTo(canvaswidth, canvasheight - canvasheight * currentspeed);
         ctx.stroke();
 
-
-    }else if (stick.name == "RIGHT_ANALOG_STICK"){
-        document.getElementById("Right Stick").innerHTML = "right stick: " + stick.position.x + "  "+ -stick.position.y;
-        var line_update = calculateLineStart(centre,stick.position.x,200,90);
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(0,0,xlen,ylen);
-        ctx.strokeStyle = "#FFFFFF";
-        ctx.lineWidth = 1;
+        var ctx = canvas.acceleration.getContext("2d");
+        //console.log(button.value);
+        refreshCanvas(canvas.acceleration);
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = 10;
         ctx.beginPath();
-        ctx.arc(centre.x, centre.y, 200, 0, 2 * Math.PI);
-        ctx.moveTo(line_update.start.x, line_update.start.y);
-        ctx.lineTo(line_update.end.x, line_update.end.y);
+        ctx.moveTo(0, canvasheight - (canvascentre * acceleration)-canvascentre);
+        ctx.lineTo(canvaswidth, canvasheight - (canvascentre * acceleration)-canvascentre);
+        ctx.stroke();
+    }else{
+        currentspeed = 0
+        acceleration = 0
+
+        var ctx = canvas.speed.getContext("2d");
+        //console.log(button.value);
+        refreshCanvas(canvas.speed);
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, canvasheight - canvasheight * currentspeed);
+        ctx.lineTo(canvaswidth, canvasheight - canvasheight * currentspeed);
+        ctx.stroke();
+
+        var ctx = canvas.acceleration.getContext("2d");
+        //console.log(button.value);
+        refreshCanvas(canvas.acceleration);
+        ctx.strokeStyle = "#FF0000";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(0, canvasheight - (canvascentre * acceleration)-canvascentre);
+        ctx.lineTo(canvaswidth, canvasheight - (canvascentre * acceleration)-canvascentre);
         ctx.stroke();
     }
 
-
-
-    console.log(stick);
+    return currentspeed;
 }
 
-function calculateLineStart(centre, angle, line_radius, angle_lim){
+
+
+function calculateLinePoints(centre, angle_multiplier , line_radius, angle_lim){
     angle_lim = toRad(angle_lim);
-    var xstart = centre.x - (line_radius * Math.cos(angle * angle_lim));
-    var ystart = centre.y - (line_radius * Math.sin(angle * angle_lim));
-    var xend = centre.x + (line_radius * Math.cos(angle * angle_lim));
-    var yend = centre.y + (line_radius * Math.sin(angle * angle_lim));
+    var xstart = centre.x - (line_radius * Math.cos(angle_multiplier * angle_lim));
+    var ystart = centre.y - (line_radius * Math.sin(angle_multiplier * angle_lim));
+    var xend = centre.x + (line_radius * Math.cos(angle_multiplier * angle_lim));
+    var yend = centre.y + (line_radius * Math.sin(angle_multiplier * angle_lim));
     return {start:{x:xstart, y:ystart}, end:{x:xend, y:yend}};
 }
 
